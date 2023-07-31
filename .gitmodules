@@ -1,0 +1,11 @@
+[submodule "cheri/qemu"]
+	path = cheri/qemu
+	url = https://github.com/jperrett256/qemu.git
+	branch = tag-tracing-backend
+[submodule "dynamorio"]
+	path = dynamorio
+	url = https://github.com/jperrett256/dynamorio.git
+	branch = drcachesim-cheri
+[submodule "cheribuild"]
+	path = cheribuild
+	url = https://github.com/CTSRD-CHERI/cheribuild.git
