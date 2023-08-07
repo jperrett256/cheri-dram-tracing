@@ -16,6 +16,9 @@ Building dynamorio requires `apt install libipt-dev zlib1g-dev liblz4-dev` at a 
 
 See the sections below about version issues with dependencies installed with apt, and how to resolve them.
 
+A build script has been prepared to make the process easier. It should boot into cheribsd during the build process, use `ctrl+A` followed by `x` to exit.
+While this build script should just work, provided all dependencies are provided (and are the appropriate versions - see below), I recommend **starting this process long before you need to use these tools**. Both cheribuild and g++ have flags for producing verbose output, which may be helpful if they complain.
+
 ### Version Issues - Ubuntu 18.04
 
 The version of `liblz4-dev` found on Ubuntu 18.04 is too old for dynamorio and cheri-trace-converter. A more up-to-date release can be downloaded from the [lz4 GitHub page](https://github.com/lz4/lz4/releases) or the [Ubuntu packages archive](https://packages.ubuntu.com/focal/liblz4-dev). A local installation may be performed with:
