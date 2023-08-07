@@ -9,3 +9,6 @@
 [submodule "cheribuild"]
 	path = cheribuild
 	url = https://github.com/CTSRD-CHERI/cheribuild.git
+[submodule "cheri-trace-converter"]
+	path = cheri-trace-converter
+	url = https://github.com/jperrett256/cheri-trace-converter
