@@ -1,3 +1,4 @@
 dynamorio_build/**
 cheri/**
+fifos/**
 !cheri/qemu
