@@ -1,8 +1,9 @@
 import sys
 # import subprocess
 import pexpect
+import spec_commands as SPEC
 
-def run_command(command):
+def start_process(command):
 	print("COMMAND START: {}".format(command))
 	print("")
 
@@ -10,40 +11,59 @@ def run_command(command):
 	child.logfile = sys.stdout.buffer
 	return child
 
-def expect_command_end(child):
-	child.expect(pexpect.EOF)
+def expect_process_end(child):
+	child.expect(pexpect.EOF, timeout=None)
 	print("")
 	if child.wait() != 0:
 		raise RuntimeError("Failed to execute command: '{}'".format(command))
 
-def run_command_simple(command):
-	child = run_command(command)
-	expect_command_end(child)
+def expect_qemu_command_end(qemu_process):
+	qemu_process.expect("toor@cheribsd-riscv64-purecap", timeout=None)
+	qemu_process.expect("#")
 
-# run_command_simple("./test_command \"first command\" 3")
+def run_benchmark(qemu_process, benchmark: SPEC.Variant, userspace=True):
+	for command in benchmark.setup:
+		qemu_process.sendline(command)
+		expect_qemu_command_end(qemu_process)
 
-# child = run_command("./test_command \"first command\" 5")
-# child.expect("stderr")
-# print("hello")
-# expect_command_end(child)
+	# alternatively could put all commands in bash script and run that
+	qtrace_prefix = "time qtrace{} exec -- ".format(" -u" if userspace else "")
+	for command in benchmark.execution:
+		qemu_process.sendline(qtrace_prefix + command)
+		expect_qemu_command_end(qemu_process)
 
-# run_command_simple("./test_command \"second command\" 3")
-# # TODO proper forwarding of error messages?
 
-# TODO check stdout is written to stdout, stderr is written to stderr?
-
-qemu_process = run_command(
+qemu_process = start_process(
 	"./cheribuild/cheribuild.py --source-root cheri run-riscv64-purecap --run-riscv64-purecap/ephemeral " \
 	"--run-riscv64-purecap/extra-options=\"--icount shift=0,align=off --cheri-trace-backend drcachesim " \
 	"--cheri-trace-drcachesim-tracefile /dev/null --cheri-trace-drcachesim-dbgfile /dev/null\"")
 
 qemu_process.expect("login:", timeout=None)
 
-# qemu_process.sendline("toor")
-# qemu_process.sendline("ls")
-# qemu_process.wait()
+qemu_process.sendline("toor")
+
+expect_qemu_command_end(qemu_process)
+
+# qemu_process.sendline("time ls")
+# qemu_process.expect("real", timeout=None)
+# qemu_process.expect("user", timeout=None)
+# qemu_process.expect("sys", timeout=None)
+
+# TODO start other programs as well
+
+# TODO support for options:
+# 	- logfile path
+#	- perthread tracing, userspace tracing
+#	- benchmark name and variant
+
+# TODO option to add sysctl hw.qemu_trace_perthread=1
+# TODO option for userspace tracing
+run_benchmark(qemu_process, SPEC.libquantum.test)
+
 
 qemu_process.sendcontrol('a')
 qemu_process.send('x')
-expect_command_end(qemu_process)
+
+
+expect_process_end(qemu_process)
 
