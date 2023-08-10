@@ -26,7 +26,7 @@ The version of `liblz4-dev` found on Ubuntu 18.04 is too old for dynamorio and c
 make
 PREFIX=$HOME/.local make install
 ```
-Make sure that your `CPATH` and `LD_LIBRARY_PATH` environment variables are updated to include your local `lib/` and `include/` directories (e.g. by updating your `~/.bashrc` appropriately). You may also need to set `CMAKE_LIBRARY_PATH` when building dynamorio.
+Make sure that your `CPATH` and `LD_LIBRARY_PATH` environment variables are updated to include your local `lib/` and `include/` directories (e.g. by updating your `~/.bashrc` appropriately, though be sure to take note of the guidance below on setting these environment variables). You may also need to set `CMAKE_LIBRARY_PATH` when building dynamorio.
 
 Older versions of gcc/g++ (such as version 7.5.0, which is what is available via `apt` for Ubuntu 18.04) appear not to perform partial linking correctly, which is needed for building cheri-trace-converter. (It results in linker errors, due to these older versions implicitly adding `-l<library name>` flags to the end of your command, even when partial linking is enabled. This can be seen by running gcc/g++ in verbose mode, with the `-v` flag.) A newer version (e.g. 11.4.0, which is what you find on Ubuntu 20.04) can be installed locally, using the instructions [here](https://gcc.gnu.org/wiki/InstallingGCC) and the releases [here](https://gcc.gnu.org/releases.html).
 
@@ -44,3 +44,16 @@ make
 make install
 ```
 Make sure that your `PATH` is updated to include the `bin/` directory of your local install location (e.g. by updating your `~/.bashrc` appropriately).
+
+### Trailing/Leading Colons in Environment Variables
+
+**Be careful not to have trailing or leading colons in your environment variables** (particularly `CPATH`), as this can be interpreted in some cases as having the current directory included in the list. This will interfere when building cheribuild (at the very least).
+So instead of having, for example:
+```bash
+export CPATH=~/.local/include:$CPATH # do not do this
+```
+Consider instead using:
+```bash
+export CPATH=~/.local/include${CPATH:+:$CPATH}
+```
+This will only append `:$CPATH` to `~/.local/include` if `CPATH` is set and non-empty.
