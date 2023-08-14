@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -e
+set -x
 
 if [ "$#" -ne 1 ] || ! [ -f "$1" ]; then
   echo "Usage: $0 <SPEC .iso path>" >&2
