@@ -1,5 +1,6 @@
 import sys
 import os
+import re
 import argparse
 import pexpect
 import spec_commands as SPEC
@@ -20,8 +21,7 @@ def expect_process_end(child):
         raise RuntimeError("Failed to execute command: '{}'".format(command))
 
 def expect_qemu_command_end(qemu_process):
-    qemu_process.expect("toor@cheribsd-riscv64-purecap", timeout=None)
-    qemu_process.expect("#")
+    qemu_process.expect(re.compile(rb"toor@cheribsd-riscv64-purecap:.* #"), timeout=None)
 
 def run_benchmark(qemu_process, benchmark: SPEC.Variant, userspace=True):
     for command in benchmark.setup:
@@ -33,6 +33,10 @@ def run_benchmark(qemu_process, benchmark: SPEC.Variant, userspace=True):
     qtrace_prefix = "time qtrace{} exec -- ".format(" -u" if userspace else "")
     for command in benchmark.execution:
         qemu_process.sendline(qtrace_prefix + command)
+
+        qemu_process.expect(re.compile(rb"[0-9]+\.[0-9]+ real\s+[0-9]+\.[0-9]+ user\s+[0-9]+\.[0-9]+ sys"), timeout=None)
+        print(f"Time taken: {qemu_process.match.group(0).decode('utf-8')}")
+
         expect_qemu_command_end(qemu_process)
 
 if __name__ == "__main__":
@@ -74,19 +78,27 @@ if __name__ == "__main__":
         f"{os.path.join(script_dir, 'fifos/fifo_trace_raw')} {os.path.join(script_dir, 'fifos/fifo_trace_compressed.lz4')}",
         cwd=trace_output_dir)
 
-    traceconv_drcachesim_process = start_process(
-        f"{os.path.join(script_dir, 'cheri-trace-converter/build/traceconv')} convert-drcachesim-paddr "
-        f"{os.path.join(script_dir, 'fifos/fifo_trace_compressed.lz4')} {os.path.join(script_dir, 'fifos/fifo_trace_drcachesim.lz4')}",
+    split_process = start_process(
+        f"<{os.path.join(script_dir, 'fifos/fifo_trace_compressed.lz4')} "
+        f"tee {os.path.join(script_dir, 'fifos/fifo_trace_split_a.lz4')} "
+        f"> {os.path.join(script_dir, 'fifos/fifo_trace_split_b.lz4')}",
         cwd=trace_output_dir)
 
-    # TODO split and get-initial-state
+    traceconv_initial_state_process = start_process(
+        f"{os.path.join(script_dir, 'cheri-trace-converter/build/traceconv')} get-initial-state "
+        f"{os.path.join(script_dir, 'fifos/fifo_trace_split_b.lz4')} {os.path.join(trace_output_dir, 'trace_initial_state.bin')}",
+        cwd=trace_output_dir)
+
+    traceconv_drcachesim_process = start_process(
+        f"{os.path.join(script_dir, 'cheri-trace-converter/build/traceconv')} convert-drcachesim-paddr "
+        f"{os.path.join(script_dir, 'fifos/fifo_trace_split_a.lz4')} {os.path.join(script_dir, 'fifos/fifo_trace_drcachesim.lz4')}",
+        cwd=trace_output_dir)
 
     drcachesim_process = start_process(
         f"{os.path.join(script_dir, 'dynamorio_build/bin64/drrun')} -t drcachesim "
         f"-config_file {os.path.join(script_dir, 'drcachesim_config.txt')} "
         f"-infile {os.path.join(script_dir, 'fifos/fifo_trace_drcachesim.lz4')}",
         cwd=trace_output_dir)
-
 
     qemu_process = start_process(
       f"{os.path.join(script_dir, 'cheribuild/cheribuild.py')} "
@@ -97,6 +109,8 @@ if __name__ == "__main__":
 
     # TODO would subprocess allow us to see the output of multiple child processes at once?
     # traceconv_compress_process.expect(pexpect.EOF) # DEBUG
+    # traceconv_initial_state_process.expect(pexpect.EOF) # DEBUG
+    # split_process.expect(pexpect.EOF) # DEBUG
     # traceconv_drcachesim_process.expect(pexpect.EOF) # DEBUG
     # drcachesim_process.expect(pexpect.EOF) # DEBUG
 
@@ -104,10 +118,6 @@ if __name__ == "__main__":
     qemu_process.sendline("toor")
 
     expect_qemu_command_end(qemu_process)
-
-    # qemu_process.expect("real", timeout=None)
-    # qemu_process.expect("user", timeout=None)
-    # qemu_process.expect("sys", timeout=None)
 
     # TODO support for options:
     #     - logfile path
@@ -119,6 +129,8 @@ if __name__ == "__main__":
     assert(traceconv_compress_process.isalive())
     assert(traceconv_drcachesim_process.isalive())
     assert(drcachesim_process.isalive())
+    assert(traceconv_initial_state_process.isalive())
+    assert(split_process.isalive())
 
     run_benchmark(qemu_process, selected_variant, userspace=args.userspace_enabled)
 
