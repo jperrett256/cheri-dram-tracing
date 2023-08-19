@@ -6,24 +6,22 @@ import pexpect
 import spec_commands as SPEC
 from datetime import datetime
 
-def start_process(command, **kwargs):
-    # TODO should print to info.txt instead
-    print("COMMAND START: {}".format(command))
-    print("")
+def start_process(command, info_file=None, **kwargs):
+    if info_file:
+        info_file.write("RUNNING COMMAND:\n{}\n\n".format(command))
 
     child = pexpect.spawn("/bin/bash", ['-c', command], **kwargs)
     return child
 
 def expect_process_end(child):
     child.expect(pexpect.EOF, timeout=None)
-    print("") # TODO should print to info.txt instead
     if child.wait() != 0:
         raise RuntimeError("Failed to execute command: '{}'".format(command))
 
 def expect_qemu_command_end(qemu_process):
     qemu_process.expect(re.compile(rb"toor@cheribsd-riscv64-purecap:.* #"), timeout=None)
 
-def run_benchmark(qemu_process, benchmark: SPEC.Variant, userspace=True):
+def run_benchmark(qemu_process, benchmark: SPEC.Variant, info_file, userspace):
     for command in benchmark.setup:
         qemu_process.sendline(command)
         expect_qemu_command_end(qemu_process)
@@ -35,7 +33,7 @@ def run_benchmark(qemu_process, benchmark: SPEC.Variant, userspace=True):
         qemu_process.sendline(qtrace_prefix + command)
 
         qemu_process.expect(re.compile(rb"[0-9]+\.[0-9]+ real\s+[0-9]+\.[0-9]+ user\s+[0-9]+\.[0-9]+ sys"), timeout=None)
-        print(f"Time taken: {qemu_process.match.group(0).decode('utf-8')}")
+        info_file.write(f"Time taken: {qemu_process.match.group(0).decode('utf-8')}")
 
         expect_qemu_command_end(qemu_process)
 
@@ -53,12 +51,6 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    # TODO save this to file in output directory (info.txt)?
-    print("Benchmark Name:", args.benchmark_name)
-    print("Benchmark Variant:", args.benchmark_variant)
-    print("Perthread Tracing Enabled:", args.perthread_enabled)
-    print("Userspace Tracing Enabled:", args.userspace_enabled)
-
     if args.benchmark_name not in SPEC.all_benchmarks:
         raise RuntimeError("Benchmark name not found in: {}".format(SPEC.all_benchmarks.keys()))
 
@@ -68,82 +60,92 @@ if __name__ == "__main__":
     script_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 
     trace_output_dir = os.path.abspath(datetime.now().strftime("trace_%Y-%m-%d_%H-%M-%S_%f"))
-    print(trace_output_dir)
+    print("Writing to: {}".format(trace_output_dir))
     os.mkdir(trace_output_dir) # NOTE will throw exception if folder already exists
 
-    # TODO test running this in a directory with spaces in the absolute path
+    with open(os.path.join(trace_output_dir, "info.txt"), "w") as info_file:
+        info_file.write("Benchmark Name: {}\n".format(args.benchmark_name))
+        info_file.write("Benchmark Variant: {}\n".format(args.benchmark_variant))
+        info_file.write("Perthread Tracing Enabled: {}\n".format(args.perthread_enabled))
+        info_file.write("Userspace Tracing Enabled: {}\n".format(args.userspace_enabled))
+        info_file.write("\n")
+        info_file.flush()
 
-    traceconv_compress_process = start_process(
-        f"{os.path.join(script_dir, 'cheri-trace-converter/build/traceconv')} convert "
-        f"{os.path.join(script_dir, 'fifos/fifo_trace_raw')} {os.path.join(script_dir, 'fifos/fifo_trace_compressed.lz4')} "
-        f"|& tee {os.path.join(trace_output_dir, 'traceconv_compress.log')}",
-        cwd=trace_output_dir)
+        # TODO test running this in a directory with spaces in the absolute path
 
-    split_process = start_process(
-        f"<{os.path.join(script_dir, 'fifos/fifo_trace_compressed.lz4')} "
-        f"tee {os.path.join(script_dir, 'fifos/fifo_trace_split_a.lz4')} "
-        f"> {os.path.join(script_dir, 'fifos/fifo_trace_split_b.lz4')} "
-        f"|& tee {os.path.join(trace_output_dir, 'split.log')}",
-        cwd=trace_output_dir)
+        traceconv_compress_process = start_process(
+            f"{os.path.join(script_dir, 'cheri-trace-converter/build/traceconv')} convert "
+            f"{os.path.join(script_dir, 'fifos/fifo_trace_raw')} {os.path.join(script_dir, 'fifos/fifo_trace_compressed.lz4')} "
+            f"|& tee {os.path.join(trace_output_dir, 'traceconv_compress.log')}",
+            info_file=info_file, cwd=trace_output_dir)
 
-    traceconv_initial_state_process = start_process(
-        f"{os.path.join(script_dir, 'cheri-trace-converter/build/traceconv')} get-initial-state "
-        f"{os.path.join(script_dir, 'fifos/fifo_trace_split_b.lz4')} {os.path.join(trace_output_dir, 'trace_initial_state.bin')} "
-        f"|& tee {os.path.join(trace_output_dir, 'traceconv_initial_state.log')}",
-        cwd=trace_output_dir)
+        split_process = start_process(
+            f"<{os.path.join(script_dir, 'fifos/fifo_trace_compressed.lz4')} "
+            f"tee {os.path.join(script_dir, 'fifos/fifo_trace_split_a.lz4')} "
+            f"> {os.path.join(script_dir, 'fifos/fifo_trace_split_b.lz4')} "
+            f"|& tee {os.path.join(trace_output_dir, 'split.log')}",
+            info_file=info_file, cwd=trace_output_dir)
 
-    traceconv_drcachesim_process = start_process(
-        f"{os.path.join(script_dir, 'cheri-trace-converter/build/traceconv')} convert-drcachesim-paddr "
-        f"{os.path.join(script_dir, 'fifos/fifo_trace_split_a.lz4')} {os.path.join(script_dir, 'fifos/fifo_trace_drcachesim.lz4')} "
-        f"|& tee {os.path.join(trace_output_dir, 'traceconv_drcachesim.log')}",
-        cwd=trace_output_dir)
+        traceconv_initial_state_process = start_process(
+            f"{os.path.join(script_dir, 'cheri-trace-converter/build/traceconv')} get-initial-state "
+            f"{os.path.join(script_dir, 'fifos/fifo_trace_split_b.lz4')} {os.path.join(trace_output_dir, 'trace_initial_state.bin')} "
+            f"|& tee {os.path.join(trace_output_dir, 'traceconv_initial_state.log')}",
+            info_file=info_file, cwd=trace_output_dir)
 
-    drcachesim_process = start_process(
-        f"{os.path.join(script_dir, 'dynamorio_build/bin64/drrun')} -t drcachesim "
-        f"-config_file {os.path.join(script_dir, 'drcachesim_config.txt')} "
-        f"-infile {os.path.join(script_dir, 'fifos/fifo_trace_drcachesim.lz4')} "
-        f"|& tee {os.path.join(trace_output_dir, 'drcachesim.log')}",
-        cwd=trace_output_dir)
+        traceconv_drcachesim_process = start_process(
+            f"{os.path.join(script_dir, 'cheri-trace-converter/build/traceconv')} convert-drcachesim-paddr "
+            f"{os.path.join(script_dir, 'fifos/fifo_trace_split_a.lz4')} {os.path.join(script_dir, 'fifos/fifo_trace_drcachesim.lz4')} "
+            f"|& tee {os.path.join(trace_output_dir, 'traceconv_drcachesim.log')}",
+            info_file=info_file, cwd=trace_output_dir)
 
-    qemu_process = start_process(
-      f"{os.path.join(script_dir, 'cheribuild/cheribuild.py')} "
-      f"--source-root {os.path.join(script_dir, 'cheri')} "
-      "run-riscv64-purecap --run-riscv64-purecap/ephemeral "
-      "--run-riscv64-purecap/extra-options=\""
-      f"{'--icount shift=0,align=off ' if not args.userspace_enabled else ''}"
-      "--cheri-trace-backend drcachesim "
-      f"--cheri-trace-drcachesim-tracefile {os.path.join(script_dir, 'fifos/fifo_trace_raw')} "
-      f"--cheri-trace-drcachesim-dbgfile {os.path.join(trace_output_dir, 'trace_qemu_dbg.txt')}\" "
-      f"|& tee {os.path.join(trace_output_dir, 'qemu.log')}",
-      cwd=trace_output_dir)
+        drcachesim_process = start_process(
+            f"{os.path.join(script_dir, 'dynamorio_build/bin64/drrun')} -t drcachesim "
+            f"-config_file {os.path.join(script_dir, 'drcachesim_config.txt')} "
+            f"-infile {os.path.join(script_dir, 'fifos/fifo_trace_drcachesim.lz4')} "
+            f"|& tee {os.path.join(trace_output_dir, 'drcachesim.log')}",
+            info_file=info_file, cwd=trace_output_dir)
 
-    if args.verbose:
-        qemu_process.logfile = sys.stdout.buffer
-        drcachesim_process.logfile = sys.stdout.buffer
+        qemu_process = start_process(
+            f"{os.path.join(script_dir, 'cheribuild/cheribuild.py')} "
+            f"--source-root {os.path.join(script_dir, 'cheri')} "
+            "run-riscv64-purecap --run-riscv64-purecap/ephemeral "
+            "--run-riscv64-purecap/extra-options=\""
+            f"{'--icount shift=0,align=off ' if not args.userspace_enabled else ''}"
+            "--cheri-trace-backend drcachesim "
+            f"--cheri-trace-drcachesim-tracefile {os.path.join(script_dir, 'fifos/fifo_trace_raw')} "
+            f"--cheri-trace-drcachesim-dbgfile {os.path.join(trace_output_dir, 'trace_qemu_dbg.txt')}\" "
+            f"|& tee {os.path.join(trace_output_dir, 'qemu.log')}",
+            info_file=info_file, cwd=trace_output_dir)
 
-    qemu_process.expect("login:", timeout=None)
-    qemu_process.sendline("toor")
+        info_file.flush()
 
-    expect_qemu_command_end(qemu_process)
+        if args.verbose:
+            qemu_process.logfile = sys.stdout.buffer
+            drcachesim_process.logfile = sys.stdout.buffer
 
-    if args.perthread_enabled:
-        qemu_process.sendline("sysctl hw.qemu_trace_perthread=1")
+        qemu_process.expect("login:", timeout=None)
+        qemu_process.sendline("toor")
+
         expect_qemu_command_end(qemu_process)
 
-    assert(traceconv_compress_process.isalive())
-    assert(traceconv_drcachesim_process.isalive())
-    assert(drcachesim_process.isalive())
-    assert(traceconv_initial_state_process.isalive())
-    assert(split_process.isalive())
+        if args.perthread_enabled:
+            qemu_process.sendline("sysctl hw.qemu_trace_perthread=1")
+            expect_qemu_command_end(qemu_process)
 
-    run_benchmark(qemu_process, selected_variant, userspace=args.userspace_enabled)
+        assert(traceconv_compress_process.isalive())
+        assert(traceconv_drcachesim_process.isalive())
+        assert(drcachesim_process.isalive())
+        assert(traceconv_initial_state_process.isalive())
+        assert(split_process.isalive())
 
-    qemu_process.sendcontrol('a')
-    qemu_process.send('x')
-    expect_process_end(qemu_process)
+        run_benchmark(qemu_process, selected_variant, info_file, args.userspace_enabled)
 
-    expect_process_end(traceconv_compress_process)
-    expect_process_end(split_process)
-    expect_process_end(traceconv_initial_state_process)
-    expect_process_end(traceconv_drcachesim_process)
-    expect_process_end(drcachesim_process)
+        qemu_process.sendcontrol('a')
+        qemu_process.send('x')
+        expect_process_end(qemu_process)
+
+        expect_process_end(traceconv_compress_process)
+        expect_process_end(split_process)
+        expect_process_end(traceconv_initial_state_process)
+        expect_process_end(traceconv_drcachesim_process)
+        expect_process_end(drcachesim_process)
