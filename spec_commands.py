@@ -8,14 +8,9 @@ class Benchmark:
 
 class Variant:
 	def __init__(self, setup, execution):
-		# TODO strip each element in list or no?
 		self.setup = setup.strip().split("\n")
 		self.execution = execution.strip().split("\n")
-		# TODO double check && will work with qtrace
 
-# For actual tracing, will want to run it as:
-
-## libquantum
 all_benchmarks = \
 {
 	"libquantum": Benchmark(

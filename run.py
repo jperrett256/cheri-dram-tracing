@@ -8,7 +8,7 @@ from datetime import datetime
 
 def start_process(command, info_file=None, **kwargs):
     if info_file:
-        info_file.write("RUNNING COMMAND:\n{}\n\n".format(command))
+        info_file.write(f"RUNNING COMMAND:\n{command}\n\n")
 
     child = pexpect.spawn("/bin/bash", ['-c', command], **kwargs)
     return child
@@ -16,7 +16,7 @@ def start_process(command, info_file=None, **kwargs):
 def expect_process_end(child):
     child.expect(pexpect.EOF, timeout=None)
     if child.wait() != 0:
-        raise RuntimeError("Failed to execute command: '{}'".format(command))
+        raise RuntimeError(f"Failed to execute command: '{command}'")
 
 def expect_qemu_command_end(qemu_process):
     qemu_process.expect(re.compile(rb"toor@cheribsd-riscv64-purecap:.* #"), timeout=None)
@@ -33,7 +33,9 @@ def run_benchmark(qemu_process, benchmark: SPEC.Variant, info_file, userspace):
         qemu_process.sendline(qtrace_prefix + command)
 
         qemu_process.expect(re.compile(rb"[0-9]+\.[0-9]+ real\s+[0-9]+\.[0-9]+ user\s+[0-9]+\.[0-9]+ sys"), timeout=None)
-        info_file.write(f"Time taken: {qemu_process.match.group(0).decode('utf-8')}")
+        time_str = qemu_process.match.group(0).decode('utf-8')
+        info_file.write(f"Time taken: {time_str}")
+        print(f"Time taken: {time_str}")
 
         expect_qemu_command_end(qemu_process)
 
@@ -41,7 +43,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="A tool for the automated running of SPEC2006 benchmarks in cheribsd.")
 
     parser.add_argument("benchmark_name", type=str, metavar="benchmark", help="Benchmark name")
-    parser.add_argument("benchmark_variant", choices=["test", "train", "ref"], # metavar="variant",
+    parser.add_argument("benchmark_variant", choices=["test", "train", "ref"],
         help="Benchmark variant (either test, train, or ref)")
 
     parser.add_argument("--logfile", type=str, metavar="PATH", dest="logfile_path", help="Path to the logfile")
@@ -52,7 +54,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.benchmark_name not in SPEC.all_benchmarks:
-        raise RuntimeError("Benchmark name not found in: {}".format(SPEC.all_benchmarks.keys()))
+        raise RuntimeError(f"Benchmark name not found in: {SPEC.all_benchmarks.keys()}")
 
     selected_benchmark = SPEC.all_benchmarks[args.benchmark_name]
     selected_variant = getattr(selected_benchmark, args.benchmark_variant)
@@ -60,14 +62,14 @@ if __name__ == "__main__":
     script_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 
     trace_output_dir = os.path.abspath(datetime.now().strftime("trace_%Y-%m-%d_%H-%M-%S_%f"))
-    print("Writing to: {}".format(trace_output_dir))
+    print(f"Writing to: {trace_output_dir}")
     os.mkdir(trace_output_dir) # NOTE will throw exception if folder already exists
 
     with open(os.path.join(trace_output_dir, "info.txt"), "w") as info_file:
-        info_file.write("Benchmark Name: {}\n".format(args.benchmark_name))
-        info_file.write("Benchmark Variant: {}\n".format(args.benchmark_variant))
-        info_file.write("Perthread Tracing Enabled: {}\n".format(args.perthread_enabled))
-        info_file.write("Userspace Tracing Enabled: {}\n".format(args.userspace_enabled))
+        info_file.write(f"Benchmark Name: {args.benchmark_name}\n")
+        info_file.write(f"Benchmark Variant: {args.benchmark_variant}\n")
+        info_file.write(f"Perthread Tracing Enabled: {args.perthread_enabled}\n")
+        info_file.write(f"Userspace Tracing Enabled: {args.userspace_enabled}\n")
         info_file.write("\n")
         info_file.flush()
 
