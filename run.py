@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import sys
 import os
 import re
@@ -21,23 +23,19 @@ def expect_process_end(child):
 def expect_qemu_command_end(qemu_process):
     qemu_process.expect(re.compile(rb"toor@cheribsd-riscv64-purecap:.* #"), timeout=None)
 
-def run_benchmark(qemu_process, benchmark: SPEC.Variant, info_file, userspace):
-    for command in benchmark.setup:
-        qemu_process.sendline(command)
-        expect_qemu_command_end(qemu_process)
-
-    # TODO alternatively could put all commands in bash script and run that
-    # (tracing each command individually seems unideal for timing purposes, if not other reasons)
+def run_benchmark(qemu_process, info_file, name: str, variant: str, userspace: bool):
+    # NOTE All necessary commands for each benchmark are in scripts placed within cheribsd by the build process.
     qtrace_prefix = "time qtrace{} exec -- ".format(" -u" if userspace else "")
-    for command in benchmark.execution:
-        qemu_process.sendline(qtrace_prefix + command)
+    benchmark_command = f"/opt/spec2006_scripts/{name}.{variant}.sh"
 
-        qemu_process.expect(re.compile(rb"[0-9]+\.[0-9]+ real\s+[0-9]+\.[0-9]+ user\s+[0-9]+\.[0-9]+ sys"), timeout=None)
-        time_str = qemu_process.match.group(0).decode('utf-8')
-        info_file.write(f"Time taken: {time_str}")
-        print(f"Time taken: {time_str}")
+    qemu_process.sendline(qtrace_prefix + benchmark_command)
 
-        expect_qemu_command_end(qemu_process)
+    qemu_process.expect(re.compile(rb"[0-9]+\.[0-9]+ real\s+[0-9]+\.[0-9]+ user\s+[0-9]+\.[0-9]+ sys"), timeout=None)
+    time_str = qemu_process.match.group(0).decode('utf-8')
+    info_file.write(f"Time taken: {time_str}")
+    print(f"Time taken: {time_str}")
+
+    expect_qemu_command_end(qemu_process)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="A tool for the automated running of SPEC2006 benchmarks in cheribsd.")
@@ -55,9 +53,6 @@ if __name__ == "__main__":
 
     if args.benchmark_name not in SPEC.all_benchmarks:
         raise RuntimeError(f"Benchmark name not found in: {SPEC.all_benchmarks.keys()}")
-
-    selected_benchmark = SPEC.all_benchmarks[args.benchmark_name]
-    selected_variant = getattr(selected_benchmark, args.benchmark_variant)
 
     script_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 
@@ -77,7 +72,8 @@ if __name__ == "__main__":
 
         traceconv_compress_process = start_process(
             f"{os.path.join(script_dir, 'cheri-trace-converter/build/traceconv')} convert "
-            f"{os.path.join(script_dir, 'fifos/fifo_trace_raw')} {os.path.join(script_dir, 'fifos/fifo_trace_compressed.lz4')} "
+            f"{os.path.join(script_dir, 'fifos/fifo_trace_raw')} "
+            f"{os.path.join(script_dir, 'fifos/fifo_trace_compressed.lz4')} "
             f"|& tee {os.path.join(trace_output_dir, 'traceconv_compress.log')}",
             info_file=info_file, cwd=trace_output_dir)
 
@@ -90,13 +86,15 @@ if __name__ == "__main__":
 
         traceconv_initial_state_process = start_process(
             f"{os.path.join(script_dir, 'cheri-trace-converter/build/traceconv')} get-initial-state "
-            f"{os.path.join(script_dir, 'fifos/fifo_trace_split_b.lz4')} {os.path.join(trace_output_dir, 'trace_initial_state.bin')} "
+            f"{os.path.join(script_dir, 'fifos/fifo_trace_split_b.lz4')} "
+            f"{os.path.join(trace_output_dir, 'trace_initial_state.bin')} "
             f"|& tee {os.path.join(trace_output_dir, 'traceconv_initial_state.log')}",
             info_file=info_file, cwd=trace_output_dir)
 
         traceconv_drcachesim_process = start_process(
             f"{os.path.join(script_dir, 'cheri-trace-converter/build/traceconv')} convert-drcachesim-paddr "
-            f"{os.path.join(script_dir, 'fifos/fifo_trace_split_a.lz4')} {os.path.join(script_dir, 'fifos/fifo_trace_drcachesim.lz4')} "
+            f"{os.path.join(script_dir, 'fifos/fifo_trace_split_a.lz4')} "
+            f"{os.path.join(script_dir, 'fifos/fifo_trace_drcachesim.lz4')} "
             f"|& tee {os.path.join(trace_output_dir, 'traceconv_drcachesim.log')}",
             info_file=info_file, cwd=trace_output_dir)
 
@@ -140,7 +138,8 @@ if __name__ == "__main__":
         assert(traceconv_initial_state_process.isalive())
         assert(split_process.isalive())
 
-        run_benchmark(qemu_process, selected_variant, info_file, args.userspace_enabled)
+        run_benchmark(qemu_process, info_file,
+            args.benchmark_name, args.benchmark_variant, args.userspace_enabled)
 
         qemu_process.sendcontrol('a')
         qemu_process.send('x')
