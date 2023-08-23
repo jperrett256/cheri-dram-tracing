@@ -45,12 +45,3 @@ popd
 pushd $script_dir/cheri-trace-converter
 make
 popd
-
-############# make fifos for piping trace data between components #############
-
-mkdir -p $script_dir/fifos
-mkfifo $script_dir/fifos/fifo_trace_raw
-mkfifo $script_dir/fifos/fifo_trace_compressed.lz4
-mkfifo $script_dir/fifos/fifo_trace_split_a.lz4
-mkfifo $script_dir/fifos/fifo_trace_split_b.lz4
-mkfifo $script_dir/fifos/fifo_trace_drcachesim.lz4
