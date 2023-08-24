@@ -142,6 +142,7 @@ cd /opt/riscv64-purecap/spec2006/456.hmmer/
 """
 cd /opt/riscv64-purecap/spec2006/456.hmmer/
 """,
+# source: https://rootfriend.tistory.com/entry/Spec-INT-2006-command-line-arguments
 """
 ./456.hmmer --fixed 0 --mean 425 --num 85000 --sd 300 --seed 0 data/train/input/leng100.hmm
 """
@@ -150,6 +151,7 @@ cd /opt/riscv64-purecap/spec2006/456.hmmer/
 """
 cd /opt/riscv64-purecap/spec2006/456.hmmer/
 """,
+# source: https://github.com/ccelio/Speckle/blob/master/commands/456.hmmer.ref.cmd
 """
 ./456.hmmer data/ref/input/nph3.hmm data/ref/input/swiss41
 ./456.hmmer --fixed 0 --mean 500 --num 500000 --sd 350 --seed 0 data/ref/input/retro.hmm
@@ -182,6 +184,7 @@ cd ./data/train/input/
 cd /opt/riscv64-purecap/spec2006/473.astar/
 cd ./data/ref/input/
 """,
+# source: https://github.com/ccelio/Speckle/blob/master/commands/473.astar.ref.cmd
 """
 ../../../473.astar BigLakes2048.cfg
 ../../../473.astar rivers.cfg
@@ -240,6 +243,7 @@ cd ./data/train/input/
 cd /opt/riscv64-purecap/spec2006/464.h264ref/
 cd ./data/ref/input/
 """,
+# source: https://github.com/ccelio/Speckle/blob/master/commands/464.h264ref.ref.cmd
 """
 ../../../464.h264ref -d foreman_ref_encoder_baseline.cfg
 ../../../464.h264ref -d foreman_ref_encoder_main.cfg
@@ -255,13 +259,13 @@ cd /opt/riscv64-purecap/spec2006/445.gobmk/
 cd ./data/all/input
 """,
 """
-./445.gobmk --quiet --mode gtp < ../../test/input/capture.tst
-./445.gobmk --quiet --mode gtp < ../../test/input/connect.tst
-./445.gobmk --quiet --mode gtp < ../../test/input/connect_rot.tst
-./445.gobmk --quiet --mode gtp < ../../test/input/connection.tst
-./445.gobmk --quiet --mode gtp < ../../test/input/connection_rot.tst
-./445.gobmk --quiet --mode gtp < ../../test/input/custone.tst
-./445.gobmk --quiet --mode gtp < ../../test/input/dniwog.tst
+../../../445.gobmk --quiet --mode gtp < ../../test/input/capture.tst
+../../../445.gobmk --quiet --mode gtp < ../../test/input/connect.tst
+../../../445.gobmk --quiet --mode gtp < ../../test/input/connect_rot.tst
+../../../445.gobmk --quiet --mode gtp < ../../test/input/connection.tst
+../../../445.gobmk --quiet --mode gtp < ../../test/input/connection_rot.tst
+../../../445.gobmk --quiet --mode gtp < ../../test/input/custone.tst
+../../../445.gobmk --quiet --mode gtp < ../../test/input/dniwog.tst
 """
 		),
 		Variant(
@@ -270,14 +274,14 @@ cd /opt/riscv64-purecap/spec2006/445.gobmk/
 cd ./data/all/input
 """,
 """
-./445.gobmk --quiet --mode gtp < ../../train/input/arb.tst
-./445.gobmk --quiet --mode gtp < ../../train/input/arend.tst
-./445.gobmk --quiet --mode gtp < ../../train/input/arion.tst
-./445.gobmk --quiet --mode gtp < ../../train/input/atari_atari.tst
-./445.gobmk --quiet --mode gtp < ../../train/input/blunder.tst
-./445.gobmk --quiet --mode gtp < ../../train/input/bluzco.tst
-./445.gobmk --quiet --mode gtp < ../../train/input/nicklas2.tst
-./445.gobmk --quiet --mode gtp < ../../train/input/nicklas4.tst
+../../../445.gobmk --quiet --mode gtp < ../../train/input/arb.tst
+../../../445.gobmk --quiet --mode gtp < ../../train/input/arend.tst
+../../../445.gobmk --quiet --mode gtp < ../../train/input/arion.tst
+../../../445.gobmk --quiet --mode gtp < ../../train/input/atari_atari.tst
+../../../445.gobmk --quiet --mode gtp < ../../train/input/blunder.tst
+../../../445.gobmk --quiet --mode gtp < ../../train/input/bluzco.tst
+../../../445.gobmk --quiet --mode gtp < ../../train/input/nicklas2.tst
+../../../445.gobmk --quiet --mode gtp < ../../train/input/nicklas4.tst
 """
 		),
 		Variant(
@@ -286,11 +290,11 @@ cd /opt/riscv64-purecap/spec2006/445.gobmk/
 cd ./data/all/input
 """,
 """
-./445.gobmk --quiet --mode gtp < ../../ref/input/13x13.tst
-./445.gobmk --quiet --mode gtp < ../../ref/input/nngs.tst
-./445.gobmk --quiet --mode gtp < ../../ref/input/score2.tst
-./445.gobmk --quiet --mode gtp < ../../ref/input/trevorc.tst
-./445.gobmk --quiet --mode gtp < ../../ref/input/trevord.tst
+../../../445.gobmk --quiet --mode gtp < ../../ref/input/13x13.tst
+../../../445.gobmk --quiet --mode gtp < ../../ref/input/nngs.tst
+../../../445.gobmk --quiet --mode gtp < ../../ref/input/score2.tst
+../../../445.gobmk --quiet --mode gtp < ../../ref/input/trevorc.tst
+../../../445.gobmk --quiet --mode gtp < ../../ref/input/trevord.tst
 """
 		)
 	)

@@ -25,7 +25,7 @@ def expect_qemu_command_end(qemu_process):
     qemu_process.expect(re.compile(rb"toor@cheribsd-riscv64-purecap:.* #"), timeout=None)
 
 def run_benchmark(qemu_process, name: str, variant: str, userspace: bool):
-    # NOTE All necessary commands for each benchmark are in scripts placed within cheribsd by the build process.
+    # NOTE all necessary commands for each benchmark are in scripts placed within cheribsd by the build process
     qtrace_prefix = "time qtrace{} exec -- ".format(" -u" if userspace else "")
     benchmark_command = f"/opt/spec2006_scripts/{name}.{variant}.sh"
 
@@ -43,7 +43,8 @@ def log_and_print(info_file, message):
     print(message)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="A tool for the automated running of SPEC2006 benchmarks in cheribsd.")
+    parser = argparse.ArgumentParser(
+        description="A tool for the automated running of SPEC2006 benchmarks in cheribsd.")
 
     parser.add_argument("benchmark_name", type=str, metavar="benchmark",
         help="Benchmark name")
@@ -96,7 +97,7 @@ if __name__ == "__main__":
         info_file.write("All fifos created.\n\n")
         info_file.flush()
 
-        # TODO test running this in a directory with spaces in the absolute path
+        # TODO may need quoting to make these commands work if there are spaces in the absolute path
 
         # start running all components needed for filtered tracing
         traceconv_compress_process = start_process(
@@ -186,6 +187,7 @@ if __name__ == "__main__":
         except OSError as e:
             log_and_print(info_file, f"WARNING: failed to remove fifo directory at '{fifo_dir}'")
             log_and_print(info_file, str(e))
+            info_file.write('\n')
             info_file.flush()
 
         expect_process_end(traceconv_compress_process)
@@ -193,3 +195,5 @@ if __name__ == "__main__":
         expect_process_end(traceconv_initial_state_process)
         expect_process_end(traceconv_drcachesim_process)
         expect_process_end(drcachesim_process)
+
+        info_file.write("Done.\n\n")
