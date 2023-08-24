@@ -24,7 +24,7 @@ $script_dir/cheribuild/cheribuild.py --source-root $script_dir/cheri spec2006-ri
 
 # NOTE: this will not be visible in qemu until after the disk image is rebuilt (step below)
 pushd $script_dir/cheri/output/rootfs-riscv64-purecap/opt/
-mkdir spec2006_scripts
+mkdir -p spec2006_scripts
 $script_dir/generate_spec_scripts.py spec2006_scripts
 popd
 
