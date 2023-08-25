@@ -51,11 +51,11 @@ if __name__ == "__main__":
     parser.add_argument("benchmark_variant", choices=["test", "train", "ref"],
         help="Benchmark variant (either test, train, or ref)")
 
-    parser.add_argument("-p", "--ssh-port", type=str, metavar="PORT", dest="ssh_port",
+    parser.add_argument("-s", "--ssh-port", type=str, metavar="PORT", dest="ssh_port",
         help="SSH port to use with qemu/cheribsd")
     parser.add_argument("-v", "--verbose", action="store_true", dest="verbose",
         help="Forward qemu output to stdout (already present in log files)")
-    parser.add_argument("--perthread", action="store_true", dest="perthread_enabled",
+    parser.add_argument("-t", "--perthread", action="store_true", dest="perthread_enabled",
         help="Enable perthread tracing")
     parser.add_argument("-u", "--userspace", action="store_true", dest="userspace_enabled",
         help="Enable userspace tracing")
