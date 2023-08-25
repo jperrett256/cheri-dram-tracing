@@ -130,6 +130,8 @@ if __name__ == "__main__":
             f"|& tee {os.path.join(trace_output_dir, 'drcachesim.log')}",
             info_file=info_file, cwd=trace_output_dir)
 
+        # TODO add argument for setting icount shift parameter?
+
         qemu_process = start_process(
             f"{os.path.join(script_dir, 'cheribuild/cheribuild.py')} "
             f"--source-root {os.path.join(script_dir, 'cheri')} "

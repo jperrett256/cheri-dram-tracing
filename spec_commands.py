@@ -235,7 +235,7 @@ cd /opt/riscv64-purecap/spec2006/464.h264ref/
 cd ./data/train/input/
 """,
 """
-../../../464.h264ref -d foreman_test_encoder_baseline.cfg
+../../../464.h264ref -d foreman_train_encoder_baseline.cfg
 """
 		),
 		Variant(
