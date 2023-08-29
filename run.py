@@ -13,6 +13,7 @@ def start_process(command, info_file=None, **kwargs):
     if info_file:
         info_file.write(f"RUNNING COMMAND:\n{command}\n\n")
 
+    kwargs = { 'searchwindowsize': 8192, **kwargs }
     child = pexpect.spawn("/bin/bash", ['-c', command], **kwargs)
     return child
 
