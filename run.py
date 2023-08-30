@@ -52,8 +52,10 @@ if __name__ == "__main__":
     parser.add_argument("benchmark_variant", choices=["test", "train", "ref"],
         help="Benchmark variant (either test, train, or ref)")
 
-    parser.add_argument("-s", "--ssh-port", type=str, metavar="PORT", dest="ssh_port",
+    parser.add_argument("-s", "--ssh-port", type=int, metavar="PORT", dest="ssh_port",
         help="SSH port to use with qemu/cheribsd")
+    parser.add_argument("-m", "--memory", type=int, metavar="AMOUNT", dest="memory_size",
+        help="Amount of memory (bytes) of machine emulated with qemu")
     parser.add_argument("-v", "--verbose", action="store_true", dest="verbose",
         help="Forward qemu output to stdout (already present in log files)")
     parser.add_argument("-t", "--perthread", action="store_true", dest="perthread_enabled",
@@ -137,7 +139,8 @@ if __name__ == "__main__":
             f"{os.path.join(script_dir, 'cheribuild/cheribuild.py')} "
             f"--source-root {os.path.join(script_dir, 'cheri')} "
             "run-riscv64-purecap --run-riscv64-purecap/ephemeral "
-            "--run-riscv64-purecap/extra-options=\""
+            "--run-riscv64-purecap/extra-options=\"" # NOTE all of these 'extra-options' get passed directly to qemu
+            f"{'-m {} '.format(args.memory_size) if args.memory_size else ''}"
             f"{'--icount shift=0,align=off ' if not args.userspace_enabled else ''}"
             "--cheri-trace-backend drcachesim "
             f"--cheri-trace-drcachesim-tracefile {fifo_raw} "
